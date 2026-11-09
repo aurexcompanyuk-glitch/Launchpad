@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Launchpad</title>
+<meta name="description" content="Search Google or jump straight into any Google app.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Launchpad">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#eef1f6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d111d" media="(prefers-color-scheme: dark)">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* Layout: left-aligned control deck. Search panel on top, grouped app tiles below. */
+  --bg: #eef1f6;
+  --surface: #ffffff;
+  --ink: #141a2b;
+  --muted: #5b6478;
+  --line: #d6dbe6;
+  --accent: #2747e8;
+  --accent-ink: #ffffff;
+  --accent-soft: #e3e8ff;
+  --shadow: 0 1px 2px rgba(20, 26, 43, .05), 0 10px 28px -14px rgba(20, 26, 43, .18);
+  --font-display: "Bricolage Grotesque", -apple-system, "Segoe UI", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", -apple-system, "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d111d;
+    --surface: #161b2b;
+    --ink: #e8ebf4;
+    --muted: #97a0b6;
+    --line: #283049;
+    --accent: #8197ff;
+    --accent-ink: #0b1030;
+    --accent-soft: #1f2852;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 12px 30px -16px rgba(0, 0, 0, .6);
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+a { color: inherit; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.wrap {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 28px 24px 56px;
+  display: grid;
+  gap: 28px;
+}
+
+/* Install hint (Safari only, hidden inside the Home Screen app) */
+.install {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px 12px 16px;
+  border-radius: 14px;
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+.install[hidden] { display: none; }
+.install svg { flex: none; color: var(--accent); }
+.install p { margin: 0; flex: 1; font-size: .9375rem; }
+.install b { color: var(--accent); }
+.install button {
+  flex: none;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+/* Header */
+.top {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px 24px;
+  flex-wrap: wrap;
+}
+.brand { display: grid; gap: 2px; }
+.brand h1 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.875rem;
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+  margin: 0;
+  text-wrap: balance;
+}
+.brand p { margin: 0; color: var(--muted); font-size: .9375rem; }
+.meta {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-size: .875rem;
+}
+kbd {
+  font-family: var(--font-mono);
+  font-size: .75rem;
+  line-height: 1.4;
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  padding: 0 6px;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+/* Search panel */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 20px;
+  display: grid;
+  gap: 18px;
+  box-shadow: var(--shadow);
+}
+.searchrow { display: flex; gap: 10px; align-items: stretch; }
+.field {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  padding: 0 8px 0 14px;
+  background: var(--bg);
+  transition: border-color .15s;
+}
+.field:focus-within { border-color: var(--accent); }
+.field > svg { flex: none; color: var(--muted); }
+#q {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 1.375rem;
+  color: var(--ink);
+  padding: 13px 0;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+#q::placeholder { color: var(--muted); opacity: .85; }
+#q::-webkit-search-cancel-button { display: none; }
+.clear {
+  flex: none;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+.clear:hover { background: var(--surface); color: var(--ink); }
+.clear[hidden] { display: none; }
+.go {
+  flex: none;
+  padding: 0 24px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+  font-size: 1.0625rem;
+  cursor: pointer;
+}
+.go:hover { filter: brightness(1.08); }
+.urlline {
+  margin: -8px 2px 0;
+  font-family: var(--font-mono);
+  font-size: .8125rem;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+  min-height: 1.5em;
+}
+
+.block { display: grid; gap: 8px; }
+.label {
+  font-size: .75rem;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  text-decoration: none;
+  font-size: .9375rem;
+  cursor: pointer;
+  transition: border-color .15s, color .15s;
+}
+.chip:hover { border-color: var(--accent); color: var(--accent); }
+.chip.primary {
+  background: var(--accent-soft);
+  border-color: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+.chip.op { font-family: var(--font-mono); font-size: .8125rem; padding: 7px 12px; }
+
+.tools {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 18px 28px;
+  align-items: start;
+}
+.seg {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg);
+  justify-self: start;
+}
+.seg button {
+  border: 0;
+  background: transparent;
+  font-size: .875rem;
+  padding: 6px 12px;
+  border-radius: 7px;
+  color: var(--muted);
+  cursor: pointer;
+}
+.seg button:hover { color: var(--ink); }
+.seg button[aria-pressed="true"] {
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .1);
+}
+
+.recent-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.textbtn {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: .8125rem;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.textbtn:hover { color: var(--ink); }
+.textbtn[hidden] { display: none; }
+.empty { margin: 0; color: var(--muted); font-size: .875rem; }
+
+/* App tiles */
+.apps { display: grid; gap: 24px; }
+.group { display: grid; gap: 10px; }
+.group h2 {
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  margin: 0;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
+  gap: 10px;
+}
+.tile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  text-decoration: none;
+  color: var(--ink);
+  min-width: 0;
+  transition: border-color .15s, transform .15s;
+}
+.tile:hover { border-color: var(--accent); }
+.tile:active { transform: scale(.98); }
+.tile:hover .mono { background: var(--accent); color: var(--accent-ink); }
+.mono {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: .875rem;
+  transition: background .15s, color .15s;
+}
+.tile .t { min-width: 0; display: grid; line-height: 1.3; }
+.tile .n { font-weight: 600; font-size: .9375rem; }
+.tile .h {
+  font-family: var(--font-mono);
+  font-size: .72rem;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.foot { margin: 0; color: var(--muted); font-size: .8125rem; max-width: 65ch; }
+
+@media (pointer: coarse) {
+  .meta .hint { display: none; }
+  .chip { padding: 9px 15px; }
+  .seg button { padding: 8px 13px; }
+}
+@media (max-width: 640px) {
+  .tools { grid-template-columns: 1fr; }
+}
+@media (max-width: 480px) {
+  .wrap { padding: 20px 16px 40px; gap: 22px; }
+  .panel { padding: 14px; border-radius: 14px; }
+  .searchrow { flex-direction: column; }
+  .go { padding: 13px 22px; }
+  #q { font-size: 1.1875rem; }
+  .mono { width: 34px; height: 34px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+  .tile:active { transform: none; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="install" id="install" hidden>
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3M8 7l4-4 4 4"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>
+    <p>Make this an app: tap <b>Share</b>, then <b>Add to Home Screen</b>. Open Launchpad from its icon and Google opens inside it.</p>
+    <button type="button" id="installClose" aria-label="Hide this tip">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+    </button>
+  </div>
+
+  <header class="top">
+    <div class="brand">
+      <h1>Launchpad</h1>
+      <p>Search Google or jump straight into any Google app.</p>
+    </div>
+    <div class="meta">
+      <span id="today"></span>
+      <span class="hint"><kbd>/</kbd> to search &nbsp;<kbd>Esc</kbd> to clear</span>
+    </div>
+  </header>
+
+  <section class="panel" aria-label="Search">
+    <form id="form" class="searchrow" role="search" autocomplete="off" action="https://www.google.com/search" method="get">
+      <label class="field" for="q">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="q" name="q" type="search" enterkeyhint="search" placeholder="Search anything" aria-label="Search query" spellcheck="false" autocapitalize="off" autocorrect="off">
+        <button type="button" class="clear" id="clear" aria-label="Clear search" hidden>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </label>
+      <button type="submit" class="go" id="go">Search</button>
+    </form>
+    <p class="urlline" id="preview" aria-live="polite"></p>
+
+    <div class="block">
+      <span class="label" id="dest-label">Send it to</span>
+      <nav class="chips" id="dests" aria-labelledby="dest-label"></nav>
+    </div>
+
+    <div class="tools">
+      <div class="block">
+        <span class="label" id="time-label">Results from</span>
+        <div class="seg" id="time" role="group" aria-labelledby="time-label"></div>
+      </div>
+      <div class="block">
+        <span class="label" id="ops-label">Search operators</span>
+        <div class="chips" id="ops" role="group" aria-labelledby="ops-label"></div>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="recent-head">
+        <span class="label">Recent</span>
+        <button type="button" class="textbtn" id="clear-recent" hidden>Clear history</button>
+      </div>
+      <div class="chips" id="recent"></div>
+    </div>
+  </section>
+
+  <main class="apps" id="apps"></main>
+
+  <p class="foot" id="foot">Opened from the Home Screen, Launchpad shows Google on top of itself. Tap Done in the top-left corner to come back here. Recent searches stay on this device.</p>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var store = {
+    get: function (k, fallback) {
+      try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : fallback; }
+      catch (e) { return fallback; }
+    },
+    set: function (k, v) {
+      try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {}
+    }
+  };
+
+  // Where a query can go. `time` = supports the qdr date filter.
+  var DESTS = [
+    { id: "web", label: "Web", primary: true, time: true, home: "https://www.google.com/",
+      build: function (s, t) { return "https://www.google.com/search?q=" + s + t; } },
+    { id: "webonly", label: "Web, no AI summary", time: true, home: "https://www.google.com/",
+      build: function (s, t) { return "https://www.google.com/search?udm=14&q=" + s + t; } },
+    { id: "images", label: "Images", time: true, home: "https://images.google.com/",
+      build: function (s, t) { return "https://www.google.com/search?tbm=isch&q=" + s + t; } },
+    { id: "news", label: "News", time: true, home: "https://news.google.com/",
+      build: function (s, t) { return "https://www.google.com/search?tbm=nws&q=" + s + t; } },
+    { id: "videos", label: "Videos", time: true, home: "https://www.google.com/",
+      build: function (s, t) { return "https://www.google.com/search?tbm=vid&q=" + s + t; } },
+    { id: "youtube", label: "YouTube", home: "https://www.youtube.com/",
+      build: function (s) { return "https://www.youtube.com/results?search_query=" + s; } },
+    { id: "maps", label: "Maps", home: "https://www.google.com/maps",
+      build: function (s) { return "https://www.google.com/maps/search/?api=1&query=" + s; } },
+    { id: "scholar", label: "Scholar", home: "https://scholar.google.com/",
+      build: function (s) { return "https://scholar.google.com/scholar?q=" + s; } },
+    { id: "translate", label: "Translate", home: "https://translate.google.com/",
+      build: function (s) { return "https://translate.google.com/?sl=auto&tl=en&text=" + s + "&op=translate"; } },
+    { id: "shopping", label: "Shopping", home: "https://www.google.com/shopping",
+      build: function (s) { return "https://www.google.com/search?tbm=shop&q=" + s; } },
+    { id: "drive", label: "Drive", home: "https://drive.google.com/",
+      build: function (s) { return "https://drive.google.com/drive/search?q=" + s; } },
+    { id: "gmail", label: "Gmail", home: "https://mail.google.com/",
+      build: function (s) { return "https://mail.google.com/mail/u/0/#search/" + s; } }
+  ];
+
+  var TIMES = [
+    { v: "", label: "Any time" },
+    { v: "h", label: "Hour" },
+    { v: "d", label: "24 h" },
+    { v: "w", label: "Week" },
+    { v: "m", label: "Month" },
+    { v: "y", label: "Year" }
+  ];
+
+  var year = new Date().getFullYear();
+  var OPS = [
+    { label: "\"exact\"", wrap: true, title: "Match this exact phrase" },
+    { label: "site:", insert: "site:", title: "Only results from one site, e.g. site:bbc.co.uk" },
+    { label: "filetype:pdf", insert: "filetype:pdf", space: true, title: "Only PDF files" },
+    { label: "-word", insert: "-", title: "Exclude a word" },
+    { label: "OR", insert: "OR", space: true, title: "Either term" },
+    { label: "after:" + year + "-01-01", insert: "after:" + year + "-01-01", space: true, title: "Published after a date" },
+    { label: "intitle:", insert: "intitle:", title: "Word must appear in the page title" }
+  ];
+
+  var GROUPS = [
+    { name: "Create something new", apps: [
+      { n: "New doc", h: "docs.new", u: "https://docs.new", m: "+D" },
+      { n: "New sheet", h: "sheets.new", u: "https://sheets.new", m: "+S" },
+      { n: "New slides", h: "slides.new", u: "https://slides.new", m: "+P" },
+      { n: "New form", h: "forms.new", u: "https://forms.new", m: "+F" },
+      { n: "New event", h: "cal.new", u: "https://cal.new", m: "+E" },
+      { n: "New note", h: "keep.new", u: "https://keep.new", m: "+K" }
+    ]},
+    { name: "Mail, calendar and school", apps: [
+      { n: "Gmail", h: "mail.google.com", u: "https://mail.google.com/", m: "Gm" },
+      { n: "Calendar", h: "calendar.google.com", u: "https://calendar.google.com/", m: "Ca" },
+      { n: "Meet", h: "meet.google.com", u: "https://meet.google.com/", m: "Me" },
+      { n: "Classroom", h: "classroom.google.com", u: "https://classroom.google.com/", m: "Cl" }
+    ]},
+    { name: "Files", apps: [
+      { n: "Drive", h: "drive.google.com", u: "https://drive.google.com/", m: "Dr" },
+      { n: "Docs", h: "docs.google.com", u: "https://docs.google.com/document/", m: "Do" },
+      { n: "Sheets", h: "docs.google.com", u: "https://docs.google.com/spreadsheets/", m: "Sh" },
+      { n: "Slides", h: "docs.google.com", u: "https://docs.google.com/presentation/", m: "Sl" },
+      { n: "Keep", h: "keep.google.com", u: "https://keep.google.com/", m: "Ke" },
+      { n: "Photos", h: "photos.google.com", u: "https://photos.google.com/", m: "Ph" }
+    ]},
+    { name: "Explore and research", apps: [
+      { n: "Maps", h: "google.com/maps", u: "https://www.google.com/maps", m: "Ma" },
+      { n: "Earth", h: "earth.google.com", u: "https://earth.google.com/web/", m: "Ea" },
+      { n: "Flights", h: "google.com/travel", u: "https://www.google.com/travel/flights", m: "Fl" },
+      { n: "News", h: "news.google.com", u: "https://news.google.com/", m: "Ne" },
+      { n: "Scholar", h: "scholar.google.com", u: "https://scholar.google.com/", m: "Sc" },
+      { n: "Translate", h: "translate.google.com", u: "https://translate.google.com/", m: "Tr" }
+    ]},
+    { name: "Watch, ask and manage", apps: [
+      { n: "YouTube", h: "youtube.com", u: "https://www.youtube.com/", m: "Yt" },
+      { n: "Gemini", h: "gemini.google.com", u: "https://gemini.google.com/", m: "Ge" },
+      { n: "Account", h: "myaccount.google.com", u: "https://myaccount.google.com/", m: "Ac" }
+    ]}
+  ];
+
+  var $ = function (id) { return document.getElementById(id); };
+  var q = $("q"), form = $("form"), preview = $("preview"), clearBtn = $("clear");
+  var links = {};
+  var time = store.get("lp.time", "");
+  if (!TIMES.some(function (t) { return t.v === time; })) time = "";
+  var recent = store.get("lp.recent", []);
+  if (!Array.isArray(recent)) recent = [];
+
+  function el(tag, attrs, text) {
+    var e = document.createElement(tag);
+    if (attrs) Object.keys(attrs).forEach(function (k) { e.setAttribute(k, attrs[k]); });
+    if (text != null) e.textContent = text;
+    return e;
+  }
+
+  // Home Screen app or a Safari tab?
+  var standalone = window.navigator.standalone === true ||
+    (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
+  var appleTouch = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+  if (appleTouch && !standalone && !store.get("lp.installHidden", false)) $("install").hidden = false;
+  $("installClose").addEventListener("click", function () {
+    $("install").hidden = true;
+    store.set("lp.installHidden", true);
+  });
+  if (!standalone) {
+    $("foot").textContent = "Add Launchpad to your Home Screen and it opens Google on top of itself, with a Done button to come back. Recent searches stay on this device.";
+  }
+
+  // Today
+  try {
+    $("today").textContent = new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+  } catch (e) {}
+
+  // Destinations (plain links: the Home Screen app opens them in its own in-app browser)
+  var destsBox = $("dests");
+  DESTS.forEach(function (d) {
+    var a = el("a", { class: "chip" + (d.primary ? " primary" : ""), href: d.home }, d.label);
+    a.addEventListener("click", rememberCurrent);
+    links[d.id] = a;
+    destsBox.appendChild(a);
+  });
+
+  // Time filter
+  var timeBox = $("time");
+  TIMES.forEach(function (t) {
+    var b = el("button", { type: "button", "aria-pressed": String(t.v === time), "data-v": t.v }, t.label);
+    b.addEventListener("click", function () {
+      time = t.v;
+      store.set("lp.time", time);
+      Array.prototype.forEach.call(timeBox.children, function (c) {
+        c.setAttribute("aria-pressed", String(c.getAttribute("data-v") === time));
+      });
+      update();
+    });
+    timeBox.appendChild(b);
+  });
+
+  // Operators
+  var opsBox = $("ops");
+  OPS.forEach(function (op) {
+    var b = el("button", { type: "button", class: "chip op", title: op.title }, op.label);
+    b.addEventListener("mousedown", function (e) { e.preventDefault(); });
+    b.addEventListener("click", function () { insertOp(op); });
+    opsBox.appendChild(b);
+  });
+
+  function insertOp(op) {
+    var v = q.value;
+    var a = q.selectionStart == null ? v.length : q.selectionStart;
+    var b = q.selectionEnd == null ? v.length : q.selectionEnd;
+    var sel = v.slice(a, b);
+    var text, caret;
+    if (op.wrap) {
+      text = "\"" + sel + "\"";
+      caret = sel ? text.length : 1;
+    } else {
+      text = op.insert + (op.space ? " " : "");
+      caret = text.length;
+    }
+    var pre = v.slice(0, a);
+    var lead = pre && !/\s$/.test(pre) ? " " : "";
+    q.value = pre + lead + text + v.slice(b);
+    var pos = pre.length + lead.length + caret;
+    q.focus();
+    try { q.setSelectionRange(pos, pos); } catch (e) {}
+    update();
+  }
+
+  // Recent searches
+  var recentBox = $("recent"), clearRecent = $("clear-recent");
+  function renderRecent() {
+    recentBox.textContent = "";
+    clearRecent.hidden = recent.length === 0;
+    if (!recent.length) {
+      recentBox.appendChild(el("p", { class: "empty" }, "Your searches will appear here. Tap one to load it back into the box."));
+      return;
+    }
+    recent.forEach(function (r) {
+      var b = el("button", { type: "button", class: "chip", title: "Load into search box" }, r);
+      b.addEventListener("click", function () {
+        q.value = r;
+        q.focus();
+        update();
+      });
+      recentBox.appendChild(b);
+    });
+  }
+  function addRecent(s) {
+    var lower = s.toLowerCase();
+    recent = [s].concat(recent.filter(function (r) { return r.toLowerCase() !== lower; })).slice(0, 12);
+    store.set("lp.recent", recent);
+    renderRecent();
+  }
+  function rememberCurrent() {
+    var s = q.value.trim();
+    if (s) addRecent(s);
+  }
+  clearRecent.addEventListener("click", function () {
+    recent = [];
+    store.set("lp.recent", recent);
+    renderRecent();
+  });
+
+  // Apps
+  var appsBox = $("apps");
+  GROUPS.forEach(function (g) {
+    var sec = el("section", { class: "group" });
+    sec.appendChild(el("h2", null, g.name));
+    var grid = el("div", { class: "grid" });
+    g.apps.forEach(function (app) {
+      var a = el("a", { class: "tile", href: app.u });
+      a.appendChild(el("span", { class: "mono", "aria-hidden": "true" }, app.m));
+      var t = el("span", { class: "t" });
+      t.appendChild(el("span", { class: "n" }, app.n));
+      t.appendChild(el("span", { class: "h" }, app.h));
+      a.appendChild(t);
+      grid.appendChild(a);
+    });
+    sec.appendChild(grid);
+    appsBox.appendChild(sec);
+  });
+
+  function update() {
+    var raw = q.value.trim();
+    var s = encodeURIComponent(raw);
+    var t = time ? "&tbs=qdr:" + time : "";
+    DESTS.forEach(function (d) {
+      links[d.id].href = raw ? d.build(s, d.time ? t : "") : d.home;
+    });
+    clearBtn.hidden = !q.value;
+    preview.textContent = raw
+      ? links.web.href.replace(/^https:\/\/www\./, "")
+      : "Type, then press Search for Google web results, or pick where to send it.";
+  }
+
+  q.addEventListener("input", update);
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var raw = q.value.trim();
+    if (!raw) { q.focus(); return; }
+    addRecent(raw);
+    q.blur();
+    window.location.href = links.web.href;
+  });
+  clearBtn.addEventListener("click", function () {
+    q.value = "";
+    update();
+    q.focus();
+  });
+
+  document.addEventListener("keydown", function (e) {
+    var tag = (e.target && e.target.tagName) || "";
+    var typing = tag === "INPUT" || tag === "TEXTAREA" || (e.target && e.target.isContentEditable);
+    if (e.key === "/" && !typing && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      e.preventDefault();
+      q.focus();
+      q.select();
+    } else if (e.key === "Escape" && e.target === q) {
+      if (q.value) { q.value = ""; update(); }
+      else q.blur();
+    }
+  });
+
+  // Coming back from Google (Done button or back swipe): refresh recents from storage.
+  window.addEventListener("pageshow", function () {
+    var saved = store.get("lp.recent", []);
+    if (Array.isArray(saved)) { recent = saved; renderRecent(); }
+    update();
+  });
+
+  renderRecent();
+  update();
+})();
+</script>
+</body>
+</html>
